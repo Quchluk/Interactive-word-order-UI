@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>句子结构</title>
+    <style>
+        :root {
+            --bg: #050505;
+            --accent: #00f2ff;
+            --card-bg: #1a1a1a;
+            --text: #fff;
+            --pinyin: #bc00ff;
+            --col-bg: #0a0a0a;
+            --header-bg: #000;
+            --new-word: #ffa500;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid #333;
+            background: #000;
+            flex-shrink: 0;
+            z-index: 20;
+        }
+
+        h1 {
+            font-size: 1rem;
+            letter-spacing: 4px;
+            color: var(--accent);
+        }
+
+        /* Top Grammar Section */
+        #grammar-board {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px;
+            background: #111;
+            border-bottom: 2px solid var(--accent);
+            flex-shrink: 0;
+            max-height: 35vh;
+            overflow-y: auto;
+        }
+
+        .grammar-group {
+            background: var(--col-bg);
+            border: 1px solid #333;
+            padding: 8px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .grammar-title {
+            color: #888;
+            font-size: 0.9rem;
+            text-align: center;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
+
+        .grammar-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: center;
+        }
+
+        /* Main Columns */
+        #sentence-board {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 4px;
+            padding: 4px;
+            flex-grow: 1;
+            overflow-x: auto;
+            background: #222;
+        }
+
+        .col {
+            background: var(--col-bg);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 160px;
+            height: 100%;
+            overflow-y: auto;
+            padding-bottom: 10px;
+        }
+
+        .col-header {
+            background: var(--header-bg);
+            color: var(--accent);
+            padding: 15px 5px;
+            font-size: 1.3rem; 
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-align: center;
+            border-bottom: 2px solid var(--accent);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 70px;
+            transition: background 0.2s;
+            border-bottom: 1px solid #111;
+        }
+
+        .grammar-cards .card {
+            min-height: 60px;
+            min-width: 70px;
+            flex-grow: 1;
+        }
+
+        .card:hover {
+            background: #2a2a2a;
+        }
+
+        .char {
+            font-size: clamp(1.1rem, 2.5vh, 1.8rem);
+            font-weight: 600;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .card.new-word .char {
+            color: var(--new-word);
+        }
+
+        .details {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.92);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            padding: 5px;
+            text-align: center;
+            border: 1px solid var(--accent);
+            z-index: 5;
+        }
+
+        .card.new-word .details {
+            border: 1px solid var(--new-word);
+        }
+
+        .card.active .details {
+            opacity: 1;
+        }
+
+        .pinyin {
+            color: var(--pinyin);
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        .rus {
+            font-size: 0.75rem;
+            color: #ccc;
+            line-height: 1.2;
+        }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #444; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>句子结构</h1>
+</header>
+
+<div id="grammar-board"></div>
+<main id="sentence-board"></main>
+
+<script>
+    const grammarVocab = {
+        "量词": [
+            { ch: "个", p: "gè", r: "счётное слово" },
+            { ch: "口", p: "kǒu", r: "рот/счет. слово" },
+            { ch: "一些", p: "yìxiē", r: "немного" }
+        ],
+        "疑问词 / 助词": [
+            { ch: "吗", p: "ma", r: "вопрос. частица" },
+            { ch: "几", p: "jǐ", r: "сколько?" },
+            { ch: "为什么", p: "wèishénme", r: "почему", isNew: true }
+        ],
+        "副词 / 连词": [
+            { ch: "都", p: "dōu", r: "все, всё" },
+            { ch: "也", p: "yě", r: "тоже", isNew: true },
+            { ch: "和", p: "hé", r: "и; вместе с" },
+            { ch: "但是", p: "dànshì", r: "однако; но" },
+            { ch: "最", p: "zuì", r: "самый", isNew: true }
+        ]
+    };
+
+    const sentenceVocab = {
+        "什么时候": [
+            { ch: "明天", p: "míngtiān", r: "завтра" },
+            { ch: "三月", p: "sānyuè", r: "март", isNew: true },
+            { ch: "六月", p: "liùyuè", r: "июнь", isNew: true },
+            { ch: "九月三日", p: "jiǔyuè sānrì", r: "3 сентября", isNew: true },
+            { ch: "十月二十八日", p: "shíyuè èrshíbārì", r: "28 октября", isNew: true }
+        ],
+        "谁": [
+            { ch: "大家", p: "dàjiā", r: "все люди" },
+            { ch: "丈夫", p: "zhàngfu", r: "муж" },
+            { ch: "妻子", p: "qīzi", r: "жена" },
+            { ch: "经理", p: "jīnglǐ", r: "менеджер" },
+            { ch: "老师", p: "lǎoshī", r: "учитель" },
+            { ch: "设计师", p: "shèjìshī", r: "дизайнер" },
+            { ch: "生意人", p: "shēngyìrén", r: "бизнесмен" },
+            { ch: "姐姐", p: "jiějie", r: "ст. сестра" },
+            { ch: "人", p: "rén", r: "человек" },
+            { ch: "同学", p: "tóngxué", r: "одноклассник" },
+            { ch: "猫", p: "māo", r: "кошка", isNew: true }
+        ],
+        "能 / 想": [
+            { ch: "会", p: "huì", r: "уметь, мочь" },
+            { ch: "能", p: "néng", r: "мочь" },
+            { ch: "想", p: "xiǎng", r: "хотеть, скучать" },
+            { ch: "要", p: "yào", r: "хотеть, должен" },
+            { ch: "可能", p: "kěnéng", r: "возможно" },
+            { ch: "可以", p: "kěyǐ", r: "можно" },
+            { ch: "觉得", p: "juéde", r: "думать, чувствовать", isNew: true }
+        ],
+        "在哪儿": [
+            { ch: "家", p: "jiā", r: "дом; семья" },
+            { ch: "学校", p: "xuéxiào", r: "школа" },
+            { ch: "小学", p: "xiǎoxué", r: "нач. школа" },
+            { ch: "国家", p: "guójiā", r: "государство" },
+            { ch: "国", p: "guó", r: "страна" },
+            { ch: "莫斯科", p: "Mòsīkē", r: "Москва" },
+            { ch: "圣彼得堡", p: "shèng bǐdébǎo", r: "Санкт-Петербург" },
+            { ch: "德国", p: "Déguó", r: "Германия" },
+            { ch: "汉堡", p: "hànbǎo", r: "гамбургер/Гамбург" },
+            { ch: "美国", p: "Měiguó", r: "США" },
+            { ch: "法国", p: "Fǎguó", r: "Франция" },
+            { ch: "比利时", p: "Bǐlìshí", r: "Бельгия" }
+        ],
+        "做什么": [
+            { ch: "是", p: "shì", r: "быть" },
+            { ch: "有", p: "yǒu", r: "иметь" },
+            { ch: "没有", p: "méiyǒu", r: "не иметь" },
+            { ch: "看", p: "kàn", r: "смотреть, читать" },
+            { ch: "看见", p: "kànjiàn", r: "увидеть" },
+            { ch: "见", p: "jiàn", r: "видеть" },
+            { ch: "睡觉", p: "shuìjiào", r: "спать" },
+            { ch: "休息", p: "xiūxi", r: "отдыхать" },
+            { ch: "喜欢", p: "xǐhuan", r: "нравиться" },
+            { ch: "学习", p: "xuéxí", r: "учиться" },
+            { ch: "读书", p: "dúshū", r: "учиться/читать" },
+            { ch: "工作", p: "gōngzuò", r: "работать" },
+            { ch: "住在", p: "zhù zài", r: "жить в" },
+            { ch: "做生意", p: "zuò shēngyi", r: "заниматься бизнесом" },
+            { ch: "去", p: "qù", r: "идти" },
+            { ch: "来", p: "lái", r: "приходить" },
+            { ch: "回", p: "huí", r: "вернуться" },
+            { ch: "喝", p: "hē", r: "пить" },
+            { ch: "说汉语", p: "shuō Hànyǔ", r: "говорить по-китайски" },
+            { ch: "叫", p: "jiào", r: "звать" },
+            { ch: "开门", p: "kāimén", r: "открыть дверь" },
+            { ch: "开车", p: "kāichē", r: "водить машину" },
+            { ch: "爱国", p: "àiguó", r: "патриотичный" },
+            { ch: "不做什么", p: "bù zuò shénme", r: "ничего не делать" },
+            { ch: "旅游", p: "lǚyóu", r: "путешествовать", isNew: true },
+            { ch: "踢足球", p: "tī zúqiú", r: "играть в футбол", isNew: true }
+        ],
+        "什么": [
+            { ch: "电影", p: "diànyǐng", r: "кино, фильм" },
+            { ch: "汉语", p: "hànyǔ", r: "китайский язык" },
+            { ch: "汉字", p: "Hànzì", r: "иероглифы" },
+            { ch: "水", p: "shuǐ", r: "вода" },
+            { ch: "啤酒", p: "píjiǔ", r: "пиво" },
+            { ch: "车", p: "chē", r: "машина" },
+            { ch: "生意", p: "shēngyi", r: "бизнес" },
+            { ch: "笔", p: "bǐ", r: "ручка, кисть" },
+            { ch: "运动", p: "yùndòng", r: "спорт", isNew: true },
+            { ch: "眼睛", p: "yǎnjing", r: "глаза", isNew: true },
+            { ch: "足球", p: "zúqiú", r: "футбол", isNew: true },
+            { ch: "椅子", p: "yǐzi", r: "стул", isNew: true }
+        ]
+    };
+
+    function createCard(item) {
+        const card = document.createElement('div');
+        card.className = item.isNew ? 'card new-word' : 'card';
+        card.innerHTML = `
+            <div class="char">${item.ch}</div>
+            <div class="details">
+                <div class="pinyin">${item.p}</div>
+                <div class="rus">${item.r}</div>
+            </div>
+        `;
+        card.addEventListener('click', () => card.classList.toggle('active'));
+        return card;
+    }
+
+    const grammarBoard = document.getElementById('grammar-board');
+    Object.keys(grammarVocab).forEach(category => {
+        const group = document.createElement('div');
+        group.className = 'grammar-group';
+
+        const title = document.createElement('div');
+        title.className = 'grammar-title';
+        title.innerText = category;
+        group.appendChild(title);
+
+        const cardContainer = document.createElement('div');
+        cardContainer.className = 'grammar-cards';
+        
+        grammarVocab[category].forEach(item => {
+            cardContainer.appendChild(createCard(item));
+        });
+
+        group.appendChild(cardContainer);
+        grammarBoard.appendChild(group);
+    });
+
+    const sentenceBoard = document.getElementById('sentence-board');
+    Object.keys(sentenceVocab).forEach(category => {
+        const col = document.createElement('div');
+        col.className = 'col';
+
+        const header = document.createElement('div');
+        header.className = 'col-header';
+        header.innerText = category;
+        col.appendChild(header);
+
+        sentenceVocab[category].forEach(item => {
+            col.appendChild(createCard(item));
+        });
+
+        sentenceBoard.appendChild(col);
+    });
+</script>
+
+</body>
+</html>
