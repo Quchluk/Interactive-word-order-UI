@@ -2,8 +2,8 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>句子结构 — Конструктор предложений</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>句子结构</title>
     <style>
         :root {
             --bg: #050505;
@@ -16,88 +16,45 @@
             --new-word: #ffa500;
         }
 
-        /* Базовые сбросы */
-        * { 
-            box-sizing: border-box; 
-            margin: 0; 
-            padding: 0; 
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             background: var(--bg);
             color: var(--text);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            width: 100vw;
             display: flex;
             flex-direction: column;
-            overflow-x: hidden;
+            overflow: hidden;
         }
 
-        /* Шапка сайта */
         header {
-            height: 50px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
             border-bottom: 1px solid #333;
-            background: var(--header-bg);
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            background: #000;
+            flex-shrink: 0;
+            z-index: 20;
         }
 
         h1 {
-            font-size: 1.1rem;
-            letter-spacing: 3px;
+            font-size: 1rem;
+            letter-spacing: 4px;
             color: var(--accent);
-            text-transform: uppercase;
         }
 
-        /* Верхняя панель (Грамматика) */
-        #grammar-board {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            padding: 10px;
-            background: #111;
-            border-bottom: 2px solid var(--accent);
-        }
-
-        .grammar-group {
-            background: var(--col-bg);
-            border: 1px solid #333;
-            padding: 8px;
-            flex: 1 1 150px; /* Группы сжимаются и переносятся */
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .grammar-title {
-            color: #888;
-            font-size: 0.75rem;
-            text-align: center;
-            border-bottom: 1px solid #333;
-            padding-bottom: 4px;
-        }
-
-        .grammar-cards {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            justify-content: center;
-        }
-
-        /* Основная доска с колонками */
+        /* Main Columns */
         #sentence-board {
             display: grid;
-            /* Адаптивная сетка: колонки минимум 140px, заполняют всё пространство */
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            grid-template-columns: repeat(6, 1fr);
             gap: 4px;
             padding: 4px;
-            background: #222;
             flex-grow: 1;
+            overflow-x: auto;
+            background: #222;
         }
 
         .col {
@@ -105,23 +62,27 @@
             display: flex;
             flex-direction: column;
             gap: 2px;
-            height: fit-content;
+            min-width: 160px;
+            height: 100%;
+            overflow-y: auto;
+            padding-bottom: 10px;
         }
 
         .col-header {
             background: var(--header-bg);
             color: var(--accent);
-            padding: 12px 5px;
-            font-size: 0.95rem; 
+            padding: 15px 5px;
+            font-size: 1.3rem; 
             font-weight: bold;
+            letter-spacing: 2px;
             text-align: center;
             border-bottom: 2px solid var(--accent);
             position: sticky;
-            top: 50px; /* Прилипает под основным хедером */
+            top: 0;
             z-index: 10;
         }
 
-        /* Карточки */
+        /* Cards */
         .card {
             background: var(--card-bg);
             position: relative;
@@ -129,32 +90,30 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 65px;
+            min-height: 70px;
             transition: background 0.2s;
             border-bottom: 1px solid #111;
         }
 
-        .card:active {
-            background: #333;
+        .card:hover {
+            background: #2a2a2a;
         }
 
         .char {
-            font-size: 1.4rem;
+            font-size: clamp(1.1rem, 2.5vh, 1.8rem);
             font-weight: 600;
             text-align: center;
-            padding: 8px;
-            transition: transform 0.2s;
+            padding: 5px;
         }
 
         .card.new-word .char {
             color: var(--new-word);
         }
 
-        /* Детали при клике (перевод и пиньинь) */
         .details {
             position: absolute;
             inset: 0;
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0, 0, 0, 0.92);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -178,33 +137,20 @@
         .pinyin {
             color: var(--pinyin);
             font-weight: bold;
-            font-size: 0.85rem;
-            margin-bottom: 2px;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
         }
 
         .rus {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             color: #ccc;
             line-height: 1.2;
         }
 
-        /* Адаптация для мобильных устройств (2 колонки на узких экранах) */
-        @media (max-width: 480px) {
-            #sentence-board {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .grammar-group {
-                flex: 1 1 45%;
-            }
-            
-            h1 { font-size: 0.9rem; }
-        }
-
-        /* Скроллбары */
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: #000; }
-        ::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb { background: #444; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
     </style>
 </head>
 <body>
@@ -213,30 +159,9 @@
     <h1>句子结构</h1>
 </header>
 
-<div id="grammar-board"></div>
 <main id="sentence-board"></main>
 
 <script>
-    const grammarVocab = {
-        "量词": [
-            { ch: "个", p: "gè", r: "счётное слово" },
-            { ch: "口", p: "kǒu", r: "рот/счет. слово" },
-            { ch: "一些", p: "yìxiē", r: "немного" }
-        ],
-        "疑问词 / 助词": [
-            { ch: "吗", p: "ma", r: "вопрос. частица" },
-            { ch: "几", p: "jǐ", r: "сколько?" },
-            { ch: "为什么", p: "wèishénme", r: "почему", isNew: true }
-        ],
-        "副词 / 连词": [
-            { ch: "都", p: "dōu", r: "все, всё" },
-            { ch: "也", p: "yě", r: "тоже", isNew: true },
-            { ch: "和", p: "hé", r: "и; вместе с" },
-            { ch: "但是", p: "dànshì", r: "однако; но" },
-            { ch: "最", p: "zuì", r: "самый", isNew: true }
-        ]
-    };
-
     const sentenceVocab = {
         "什么时候": [
             { ch: "明天", p: "míngtiān", r: "завтра" },
@@ -335,40 +260,24 @@
                 <div class="rus">${item.r}</div>
             </div>
         `;
-        // Поддержка клика для мобильных и десктопа
-        card.addEventListener('click', function(e) {
-            e.preventDefault();
-            this.classList.toggle('active');
-        });
+        card.addEventListener('click', () => card.classList.toggle('active'));
         return card;
     }
 
-    // Рендер грамматики
-    const grammarBoard = document.getElementById('grammar-board');
-    Object.keys(grammarVocab).forEach(category => {
-        const group = document.createElement('div');
-        group.className = 'grammar-group';
-        const title = document.createElement('div');
-        title.className = 'grammar-title';
-        title.innerText = category;
-        group.appendChild(title);
-        const cardContainer = document.createElement('div');
-        cardContainer.className = 'grammar-cards';
-        grammarVocab[category].forEach(item => cardContainer.appendChild(createCard(item)));
-        group.appendChild(cardContainer);
-        grammarBoard.appendChild(group);
-    });
-
-    // Рендер основных колонок
     const sentenceBoard = document.getElementById('sentence-board');
     Object.keys(sentenceVocab).forEach(category => {
         const col = document.createElement('div');
         col.className = 'col';
+
         const header = document.createElement('div');
         header.className = 'col-header';
         header.innerText = category;
         col.appendChild(header);
-        sentenceVocab[category].forEach(item => col.appendChild(createCard(item)));
+
+        sentenceVocab[category].forEach(item => {
+            col.appendChild(createCard(item));
+        });
+
         sentenceBoard.appendChild(col);
     });
 </script>
